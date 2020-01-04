@@ -1,5 +1,60 @@
-# Trilium Web Clipper
+ClipperHTML
+```
+const template = `
+<script>
+    var iframe = document.getElementById('r-iframe');
+    function pageY(elem) {
+        return elem.offsetParent ? (elem.offsetTop + pageY(elem.offsetParent)) : elem.offsetTop;
+    }
+    function resizeIframe() {
+        var height = document.documentElement.clientHeight;
+        height -= pageY(iframe) + 20 ;
+        height = (height < 0) ? 0 : height;
+        iframe.style.height = height + 'px';
+    }
+    iframe.onload = resizeIframe;
+    window.onresize = resizeIframe;
+</script>
+<iframe id="r-iframe" style="width:100%" src="data:text/html;charset=utf-8,%%CONTENT%%" sandbox=""></iframe>
+`;
 
-See details on [wiki page](https://github.com/zadam/trilium/wiki/Web-clipper).
+const {req, res} = api;
+const {title, url, content} = req.body;
 
-Some parts of the code are based on the [Joplin Notes](https://github.com/laurent22/joplin/tree/master/Clipper/joplin-webclipper).
+if (req.method == 'POST') {
+    api.log("==========================");
+
+    //const todayNote = await api.getDateNote(today);
+    const todayNote = await api.getTodayNote();
+    
+    // create render note
+    const renderNote = (await api.createNewNote({
+        parentNoteId: todayNote.noteId,
+        title: title,
+        content: '',
+        type: 'render'
+    })).note;
+    await renderNote.setLabel('clipType', 'clipper-HTML');
+    await renderNote.setLabel('pageUrl', url);
+    await renderNote.setLabel('pageTitle', title);
+
+    // create child `content.html`
+    var wrapped_content = template.replace("%%CONTENT%%", encodeURIComponent(content));
+    const htmlNote = (await api.createNewNote({
+        parentNoteId: renderNote.noteId,
+        title: 'content.html',
+        content: wrapped_content,
+        type: 'file',
+        mime: 'text/html'
+    })).note;
+    await htmlNote.setLabel('archived');
+
+    // link renderNote to htmlNote
+    await renderNote.setRelation('renderNote', htmlNote.noteId);
+
+    res.status(200).send("{\"noteId\": \""+renderNote.noteId+"\"}");
+}
+else {
+    res.send(500); 
+}
+```
