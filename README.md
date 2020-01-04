@@ -58,3 +58,4 @@ else {
     res.send(500); 
 }
 ```
+Based on https://github.com/nil0x42/trilium-utils/blob/master/singlefile2trilium/singlefile2trilium-handler.js
