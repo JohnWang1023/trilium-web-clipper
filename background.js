@@ -71,6 +71,12 @@ browser.contextMenus.create({
 	contexts: ["image"]
 });
 
+browser.contextMenus.create({
+	id: "trilium-save-html",
+	title: "Save whole html to Trilium",
+	contexts: ["page"]
+});
+
 async function getActiveTab() {
 	const tabs = await browser.tabs.query({
 		active: true,
@@ -144,7 +150,7 @@ async function saveSelection() {
 
 	await postProcessImages(payload);
 
-	const resp = await triliumServerFacade.callService('POST', 'clippings', payload);
+	const resp = await triliumServerFacade.callService('POST', '/api/clipper/clippings', payload);
 
 	if (!resp) {
 		return;
@@ -178,7 +184,7 @@ async function saveScreenshot(pageUrl) {
 
 	const payload = await getImagePayloadFromSrc(src, pageUrl);
 
-	const resp = await triliumServerFacade.callService("POST", "clippings", payload);
+	const resp = await triliumServerFacade.callService("POST", "/api/clipper/clippings", payload);
 
 	if (!resp) {
 		return;
@@ -190,7 +196,7 @@ async function saveScreenshot(pageUrl) {
 async function saveImage(srcUrl, pageUrl) {
 	const payload = await getImagePayloadFromSrc(srcUrl, pageUrl);
 
-	const resp = await triliumServerFacade.callService("POST", "clippings", payload);
+	const resp = await triliumServerFacade.callService("POST", "/api/clipper/clippings", payload);
 
 	if (!resp) {
 		return;
@@ -204,7 +210,7 @@ async function saveWholePage() {
 
 	await postProcessImages(payload);
 
-	const resp = await triliumServerFacade.callService('POST', 'notes', payload);
+	const resp = await triliumServerFacade.callService('POST', '/api/clipper/notes', payload);
 
 	if (!resp) {
 		return;
@@ -214,7 +220,7 @@ async function saveWholePage() {
 }
 
 async function saveNote(title, content) {
-	const resp = await triliumServerFacade.callService('POST', 'notes', {
+	const resp = await triliumServerFacade.callService('POST', '/api/clipper/notes', {
 		title: title,
 		content: content,
 		clipType: 'note'
@@ -227,6 +233,18 @@ async function saveNote(title, content) {
 	toast("Note has been saved to Trilium.", resp.noteId);
 
 	return true;
+}
+
+async function saveHTML(pageUrl) {
+	const payload = await sendMessageToActiveTab({name: 'trilium-save-html'});
+
+	const resp = await triliumServerFacade.callService('POST', '/custom/ClipperHTML', payload);
+	if (!resp) {
+		return;
+	}
+	
+	toast("Page has been saved to Trilium.", resp.noteId);
+
 }
 
 browser.contextMenus.onClicked.addListener(async function(info, tab) {
@@ -247,7 +265,7 @@ browser.contextMenus.onClicked.addListener(async function(info, tab) {
 
 		const activeTab = await getActiveTab();
 
-		const resp = await triliumServerFacade.callService('POST', 'clippings', {
+		const resp = await triliumServerFacade.callService('POST', '/api/clipper/clippings', {
 			title: activeTab.title,
 			content: link.outerHTML,
 			pageUrl: info.pageUrl
@@ -262,6 +280,9 @@ browser.contextMenus.onClicked.addListener(async function(info, tab) {
 	else if (info.menuItemId === 'trilium-save-page') {
 		await saveWholePage();
 	}
+	else if (info.menuItemId === 'trilium-save-html') {
+		saveHTML();
+	}
 	else {
 		console.log("Unrecognized menuItemId", info.menuItemId);
 	}
@@ -269,7 +290,7 @@ browser.contextMenus.onClicked.addListener(async function(info, tab) {
 
 browser.runtime.onMessage.addListener(async request => {
 	if (request.name === 'openNoteInTrilium') {
-		const resp = await triliumServerFacade.callService('POST', 'open/' + request.noteId);
+		const resp = await triliumServerFacade.callService('POST', '/api/clipper/open/' + request.noteId);
 
 		if (!resp) {
 			return;

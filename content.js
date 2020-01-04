@@ -282,6 +282,17 @@ async function prepareMessageResponse(message) {
 			clipType: 'page'
 		};
 	}
+	else if (message.name === "trilium-save-html") {
+		await requireLib("/lib/html-screen-capture.js");
+
+		const docText = htmlScreenCaptureJs.capture('string', document, {'logLevel': 'debug'});
+		
+		return {
+			title: document.title,
+			content: docText,
+			url: getPageLocationOrigin() + location.pathname + location.search
+		};
+	}
 	else {
 		throw new Error('Unknown command: ' + JSON.stringify(message));
 	}

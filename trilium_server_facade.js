@@ -164,7 +164,7 @@ class TriliumServerFacade {
 
 			fetchOptions.headers.Authorization = this.triliumSearch.token || "";
 
-			const url = this.triliumSearch.url + "/api/clipper/" + path;
+			const url = this.triliumSearch.url + path;
 
 			console.log(`Sending ${method} request to ${url}`);
 
